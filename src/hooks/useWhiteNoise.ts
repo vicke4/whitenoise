@@ -26,7 +26,7 @@ export const useWhiteNoise = (): UseWhiteNoiseReturn => {
   const hasAutoPlayed = useRef(false);
 
   // Try to load audio with fallback support for different formats
-  const [play, { sound, stop: stopSound }] = useSound('/whitenoise.opus', {
+  const [play, { sound, stop: stopSound }] = useSound(['/whitenoise.opus', '/whitenoise.m4a', '/whitenoise.mp3'], {
     volume: volume / 100,
     loop: true,
     onload: () => {
