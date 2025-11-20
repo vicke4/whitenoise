@@ -24,22 +24,26 @@ export const useWhiteNoise = (): UseWhiteNoiseReturn => {
   const [timerMinutes, setTimerMinutesState] = useState(0);
   const [playWhenOpened, setPlayWhenOpenedState] = useState(false);
   const hasAutoPlayed = useRef(false);
+  const isPlayingRef = useRef(false);
 
   // Try to load audio with fallback support for different formats
-  const [play, { sound, stop: stopSound }] = useSound(['/whitenoise.opus', '/whitenoise.m4a', '/whitenoise.mp3'], {
-    volume: volume / 100,
-    loop: true,
-    onload: () => {
-      console.log('Audio loaded successfully');
+  const [play, { sound, stop: stopSound }] = useSound(
+    '/white_noise.mp3',
+    {
+      volume: volume / 100,
+      loop: true,
+      onload: () => {
+        console.log('Audio loaded successfully');
+      },
+      onloaderror: (id, error) => {
+        console.warn('Failed to load .opus, trying .m4a', error);
+        // Fallback is handled by browser's audio element
+      },
     },
-    onloaderror: (id, error) => {
-      console.warn('Failed to load .opus, trying .m4a', error);
-      // Fallback is handled by browser's audio element
-    },
-  });
+  );
 
   const handleTimerEnd = useCallback(() => {
-    if (sound && isPlaying) {
+    if (sound && isPlayingRef.current) {
       // Fade out over 3 seconds
       const currentVolume = volume / 100;
       sound.fade(currentVolume, 0, FADE_DURATION);
@@ -48,12 +52,13 @@ export const useWhiteNoise = (): UseWhiteNoiseReturn => {
       setTimeout(() => {
         stopSound();
         setIsPlaying(false);
+        isPlayingRef.current = false;
         if (sound) {
           sound.volume(currentVolume); // Reset volume for next play
         }
       }, FADE_DURATION);
     }
-  }, [sound, isPlaying, volume, stopSound]);
+  }, [sound, volume, stopSound]);
 
   const [timerState, startTimer, stopTimer] = useTimer(
     timerMinutes,
@@ -80,6 +85,7 @@ export const useWhiteNoise = (): UseWhiteNoiseReturn => {
     if (sound) {
       play();
       setIsPlaying(true);
+      isPlayingRef.current = true;
       if (timerMinutes > 0) {
         startTimer(timerMinutes);
       }
@@ -90,6 +96,7 @@ export const useWhiteNoise = (): UseWhiteNoiseReturn => {
     if (sound) {
       stopSound();
       setIsPlaying(false);
+      isPlayingRef.current = false;
       stopTimer();
       // Reset volume if it was faded
       sound.volume(volume / 100);
