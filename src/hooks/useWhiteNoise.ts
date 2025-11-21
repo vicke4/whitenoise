@@ -28,15 +28,16 @@ export const useWhiteNoise = (): UseWhiteNoiseReturn => {
 
   // Try to load audio with fallback support for different formats
   const [play, { sound, stop: stopSound }] = useSound(
-    '/white_noise.mp3',
+    '/white-noise.mp3',
     {
       volume: volume / 100,
       loop: true,
       onload: () => {
         console.log('Audio loaded successfully');
       },
-      onloaderror: (id, error) => {
-        console.warn('Failed to load .opus, trying .m4a', error);
+      onloaderror: (/* id, error */) => {
+        alert("not able to load the audio file");
+        // console.warn('Failed to load .opus, trying .m4a', error);
         // Fallback is handled by browser's audio element
       },
     },
