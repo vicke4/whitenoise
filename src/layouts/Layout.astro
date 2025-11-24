@@ -4,9 +4,25 @@
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="manifest" href="/manifest.json" />
+		<meta name="theme-color" content="#020617" />
 		<meta name="generator" content={Astro.generator} />
 		<title>White Noise Now - Free Online Brown & White Noise Generator</title>
 		<meta name="description" content="Free online brown noise and white noise generator for focus, sleep, and relaxation. Loop-free generative audio with intuitive gesture controls." />
+		<script is:inline>
+			if ('serviceWorker' in navigator) {
+				window.addEventListener('load', () => {
+					navigator.serviceWorker.register('/sw.js').then(
+						(registration) => {
+							console.log('ServiceWorker registration successful');
+						},
+						(err) => {
+							console.log('ServiceWorker registration failed: ', err);
+						}
+					);
+				});
+			}
+		</script>
 	</head>
 	<body>
 		<slot />

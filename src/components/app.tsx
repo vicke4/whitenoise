@@ -20,6 +20,9 @@ const WhiteNoiseNowApp = () => {
   const gainNodeRef = useRef<GainNode | null>(null);
   const noiseNodeRef = useRef<AudioBufferSourceNode | null>(null);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isFirstVolumeRender = useRef(true);
+  const isFirstTimerRender = useRef(true);
+  const isFirstNoiseRender = useRef(true);
 
   // --- Interaction State ---
   const [isDragging, setIsDragging] = useState(false);
@@ -39,9 +42,48 @@ const WhiteNoiseNowApp = () => {
   const MAX_TIMER_MINUTES = 120;
   const SENSITIVITY = 0.005; // Sensitivity of drag
 
+  // Load saved preferences from localStorage on mount
   useEffect(() => {
+    const savedVolume = localStorage.getItem('whiteNoise_volume');
+    const savedTimer = localStorage.getItem('whiteNoise_timer');
+    const savedNoiseType = localStorage.getItem('whiteNoise_noiseType');
+
+    if (savedVolume) setVolume(Number.parseFloat(savedVolume));
+    if (savedTimer) setTimerDuration(Number.parseInt(savedTimer, 10));
+    if (
+      savedNoiseType &&
+      (savedNoiseType === 'white' || savedNoiseType === 'brown')
+    ) {
+      setNoiseType(savedNoiseType);
+    }
+
     setIsTouch('ontouchstart' in window || navigator.maxTouchPoints > 0);
   }, []);
+
+  // Save preferences to localStorage (skip first render to avoid overwriting loaded values)
+  useEffect(() => {
+    if (isFirstVolumeRender.current) {
+      isFirstVolumeRender.current = false;
+      return;
+    }
+    localStorage.setItem('whiteNoise_volume', volume.toString());
+  }, [volume]);
+
+  useEffect(() => {
+    if (isFirstTimerRender.current) {
+      isFirstTimerRender.current = false;
+      return;
+    }
+    localStorage.setItem('whiteNoise_timer', timerDuration.toString());
+  }, [timerDuration]);
+
+  useEffect(() => {
+    if (isFirstNoiseRender.current) {
+      isFirstNoiseRender.current = false;
+      return;
+    }
+    localStorage.setItem('whiteNoise_noiseType', noiseType);
+  }, [noiseType]);
 
   // --- Buffer Generation Helper ---
   const createNoiseBuffer = (

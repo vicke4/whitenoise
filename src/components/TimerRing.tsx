@@ -40,7 +40,7 @@ const TimerRing = ({
           stroke="currentColor"
           strokeWidth="2"
           strokeLinecap="round"
-          className={`drop-shadow-[0_0_10px_rgba(45,212,191,0.5)] transition-all duration-300 ${noiseType === 'white' ? 'text-cyan-200' : 'text-teal-400'}`}
+          className={`transition-all duration-300 ${noiseType === 'white' ? 'text-cyan-200' : 'text-amber-400'}`}
           strokeDasharray="301.59"
           strokeDashoffset={
             timerDuration > 0

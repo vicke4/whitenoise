@@ -1,0 +1,20 @@
+{
+  "name": "White Noise Now",
+  "short_name": "WhiteNoise",
+  "description": "Free online brown noise and white noise generator for focus, sleep, and relaxation",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["health", "lifestyle", "productivity"],
+  "screenshots": []
+}
