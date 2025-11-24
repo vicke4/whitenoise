@@ -11,7 +11,7 @@ const WhiteNoiseNowApp = () => {
   // --- Audio State ---
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.5); // 0.0 to 1.0
-  const [noiseType, setNoiseType] = useState<'brown' | 'white'>('brown');
+  const [noiseType, setNoiseType] = useState<'brown' | 'white'>('white');
   const [timerDuration, setTimerDuration] = useState(0); // in minutes
   const [timeLeft, setTimeLeft] = useState(0); // in seconds
 
@@ -20,6 +20,7 @@ const WhiteNoiseNowApp = () => {
   const gainNodeRef = useRef<GainNode | null>(null);
   const noiseNodeRef = useRef<AudioBufferSourceNode | null>(null);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const dragNotificationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isFirstVolumeRender = useRef(true);
   const isFirstTimerRender = useRef(true);
   const isFirstNoiseRender = useRef(true);
@@ -243,6 +244,11 @@ const WhiteNoiseNowApp = () => {
   const handleStart = (clientX: number, clientY: number) => {
     if (showInfo) return;
 
+    if (dragNotificationTimeoutRef.current) {
+      clearTimeout(dragNotificationTimeoutRef.current);
+      dragNotificationTimeoutRef.current = null;
+    }
+
     setIsDragging(true);
     setDragStart({ x: clientX, y: clientY });
     setInitialDragValues({ vol: volume, time: timerDuration });
@@ -264,7 +270,7 @@ const WhiteNoiseNowApp = () => {
       // Timer (Horizontal)
       const timeDelta = Math.round(deltaX / 10);
       let newTime = initialDragValues.time + timeDelta;
-      if (Math.abs(newTime % 5) < 2) newTime = Math.round(newTime / 5) * 5;
+      if (Math.abs(newTime % 5) < 1) newTime = Math.round(newTime / 5) * 5;
       newTime = Math.max(0, Math.min(MAX_TIMER_MINUTES, newTime));
 
       if (newTime !== timerDuration) {
@@ -283,7 +289,8 @@ const WhiteNoiseNowApp = () => {
 
   const handleEnd = () => {
     setIsDragging(false);
-    setTimeout(() => setShowFeedback(false), 1500);
+    // setShowFeedback(false)
+    dragNotificationTimeoutRef.current = setTimeout(() => setShowFeedback(false), 1000);
   };
 
   // Event Listeners
@@ -318,7 +325,7 @@ const WhiteNoiseNowApp = () => {
 
   return (
     <div
-      className="relative w-full h-screen overflow-hidden bg-slate-950 text-slate-100 select-none touch-none font-sans"
+      className="relative w-full h-dvh overflow-hidden bg-slate-950 text-slate-100 select-none touch-none font-sans"
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}

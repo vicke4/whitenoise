@@ -10,7 +10,10 @@
 		<title>White Noise Now - Free Online Brown & White Noise Generator</title>
 		<meta name="description" content="Free online brown noise and white noise generator for focus, sleep, and relaxation. Loop-free generative audio with intuitive gesture controls." />
 		<script is:inline>
-			if ('serviceWorker' in navigator) {
+			if ('serviceWorker' in navigator &&
+				// ignoring service worker in dev environment
+				!['localhost', '127.0.0.1'].includes(window.location.hostname)
+			) {
 				window.addEventListener('load', () => {
 					navigator.serviceWorker.register('/sw.js').then(
 						(registration) => {
