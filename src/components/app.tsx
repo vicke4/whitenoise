@@ -3,6 +3,7 @@ import BottomControls from './BottomControls';
 import FeedbackOverlay from './FeedbackOverlay';
 import InfoModal from './InfoModal';
 import InstructionOverlay from './InstructionOverlay';
+import Logo from './Logo';
 import TimerRing from './TimerRing';
 import VolumeOrb from './VolumeOrb';
 
@@ -287,25 +288,33 @@ const WhiteNoiseNowApp = () => {
       {/* Background Effects */}
       <div className="absolute inset-0 opacity-20 pointer-events-none">
         <div
-          className={`absolute top-0 left-0 w-full h-full transition-colors duration-1000 ${noiseType === 'brown' ? 'bg-[radial-gradient(circle_at_50%_50%,rgba(76,29,149,0.5),transparent_70%)]' : 'bg-[radial-gradient(circle_at_50%_50%,rgba(94,234,212,0.15),transparent_70%)]'}`}
+          className={`absolute top-0 left-0 w-full h-full transition-colors duration-1000 ${noiseType === 'brown' ? 'bg-[radial-gradient(circle_at_50%_50%,rgba(217,119,6,0.3),transparent_70%)]' : 'bg-[radial-gradient(circle_at_50%_50%,rgba(94,234,212,0.15),transparent_70%)]'}`}
         ></div>
       </div>
 
       {/* Main Display Container */}
-      <div className="relative w-full h-full flex items-center justify-center">
+      <div className="relative w-full h-full flex flex-col items-center justify-center gap-8">
+        {/* Logo and Title */}
+        <div
+          className={`absolute top-12 z-10 transition-all duration-300 flex flex-col items-center gap-4 ${
+            showInfo ? 'opacity-20 blur-md' : 'opacity-100'
+          }`}
+        >
+          <Logo noiseType={noiseType} />
+          <InstructionOverlay
+            isPlaying={isPlaying}
+            isDragging={isDragging}
+            showInfo={showInfo}
+            isTouch={isTouch}
+          />
+        </div>
+
         <TimerRing
           volume={volume}
           timerDuration={timerDuration}
           timeLeft={timeLeft}
           showInfo={showInfo}
           noiseType={noiseType}
-        />
-
-        <InstructionOverlay
-          isPlaying={isPlaying}
-          isDragging={isDragging}
-          showInfo={showInfo}
-          isTouch={isTouch}
         />
 
         <VolumeOrb
@@ -340,12 +349,19 @@ const WhiteNoiseNowApp = () => {
       />
 
       <style>{`
-        @keyframes pulse-slow {
-          0%, 100% { box-shadow: 0 0 40px rgba(79, 70, 229, 0.4); }
-          50% { box-shadow: 0 0 80px rgba(79, 70, 229, 0.7); }
+        @keyframes pulse-brown {
+          0%, 100% { box-shadow: 0 0 40px rgba(217, 119, 6, 0.4); }
+          50% { box-shadow: 0 0 80px rgba(217, 119, 6, 0.7); }
         }
-        .animate-pulse-slow {
-          animation: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        @keyframes pulse-white {
+          0%, 100% { box-shadow: 0 0 40px rgba(200, 200, 255, 0.4); }
+          50% { box-shadow: 0 0 80px rgba(200, 200, 255, 0.7); }
+        }
+        .animate-pulse-brown {
+          animation: pulse-brown 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .animate-pulse-white {
+          animation: pulse-white 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
       `}</style>
     </div>

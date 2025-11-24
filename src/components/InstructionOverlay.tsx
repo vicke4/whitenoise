@@ -13,10 +13,12 @@ const InstructionOverlay = ({
 }: InstructionOverlayProps) => {
   return (
     <div
-      className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 mt-32 md:mt-40 pointer-events-none transition-all duration-1000 ${!isPlaying && !isDragging && !showInfo ? 'opacity-100' : 'opacity-0'}`}
+      className={`pointer-events-none transition-all duration-1000 ${!isPlaying && !isDragging && !showInfo ? 'opacity-100' : 'opacity-0'}`}
     >
-      <p className="text-slate-500 text-xs md:text-sm tracking-[0.2em] uppercase text-center whitespace-nowrap">
-        {isTouch ? 'Tap & Drag Vertically' : 'Click & Drag Vertically'}
+      <p className="text-slate-500 text-xs md:text-sm tracking-wide text-center max-w-xl px-4 uppercase leading-relaxed">
+        {isTouch
+          ? 'Tap & drag vertically for volume, horizontally for timer'
+          : 'Click & drag vertically for volume, horizontally for timer'}
       </p>
     </div>
   );

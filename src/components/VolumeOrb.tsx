@@ -19,10 +19,10 @@ const VolumeOrb = ({
 }: VolumeOrbProps) => {
   return (
     <div
-      className={`rounded-full shadow-[0_0_50px_rgba(79,70,229,0.4)] flex items-center justify-center transition-all duration-1000 ease-linear
-            ${isPlaying ? 'animate-pulse-slow' : ''}
+      className={`rounded-full flex items-center justify-center transition-all duration-1000 ease-linear
+            ${isPlaying ? (noiseType === 'brown' ? 'animate-pulse-brown' : 'animate-pulse-white') : ''}
             ${showInfo ? 'blur-md opacity-20' : ''}
-            ${noiseType === 'brown' ? 'bg-gradient-to-tr from-indigo-600 to-purple-500' : 'bg-gradient-to-tr from-slate-400 to-cyan-100 shadow-[0_0_50px_rgba(200,200,255,0.4)]'}
+            ${noiseType === 'brown' ? 'bg-gradient-to-tr from-amber-700 to-orange-600 shadow-[0_0_50px_rgba(217,119,6,0.4)]' : 'bg-gradient-to-tr from-slate-400 to-cyan-100 shadow-[0_0_50px_rgba(200,200,255,0.4)]'}
           `}
       style={{
         width: `${120 + volume * 200}px`,

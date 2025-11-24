@@ -46,12 +46,12 @@ const BottomControls = ({
           title="Switch Noise Type"
         >
           <div
-            className={`p-3 rounded-full border transition-all duration-300 shadow-lg active:scale-95 ${noiseType === 'brown' ? 'bg-indigo-900/40 border-indigo-700 hover:border-indigo-500' : 'bg-cyan-900/30 border-cyan-700 hover:border-cyan-500'}`}
+            className={`p-3 rounded-full border transition-all duration-300 shadow-lg active:scale-95 ${noiseType === 'brown' ? 'bg-amber-900/40 border-amber-700 hover:border-amber-500' : 'bg-cyan-900/30 border-cyan-700 hover:border-cyan-500'}`}
           >
             {noiseType === 'brown' ? (
               <Waves
                 size={20}
-                className="text-indigo-400 group-hover:text-indigo-200 transition-colors"
+                className="text-amber-400 group-hover:text-amber-200 transition-colors"
               />
             ) : (
               <Zap
