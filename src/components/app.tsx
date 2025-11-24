@@ -1,0 +1,355 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import BottomControls from './BottomControls';
+import FeedbackOverlay from './FeedbackOverlay';
+import InfoModal from './InfoModal';
+import InstructionOverlay from './InstructionOverlay';
+import TimerRing from './TimerRing';
+import VolumeOrb from './VolumeOrb';
+
+const WhiteNoiseNowApp = () => {
+  // --- Audio State ---
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [volume, setVolume] = useState(0.5); // 0.0 to 1.0
+  const [noiseType, setNoiseType] = useState<'brown' | 'white'>('brown');
+  const [timerDuration, setTimerDuration] = useState(0); // in minutes
+  const [timeLeft, setTimeLeft] = useState(0); // in seconds
+
+  // --- Refs for Audio Context ---
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
+  const noiseNodeRef = useRef<AudioBufferSourceNode | null>(null);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // --- Interaction State ---
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [initialDragValues, setInitialDragValues] = useState({
+    vol: 0.5,
+    time: 0,
+  });
+  const [feedbackText, setFeedbackText] = useState('');
+  const [showFeedback, setShowFeedback] = useState(false);
+
+  // --- UI State ---
+  const [showInfo, setShowInfo] = useState(false);
+  const [isTouch, setIsTouch] = useState(false);
+
+  // --- Constants ---
+  const MAX_TIMER_MINUTES = 120;
+  const SENSITIVITY = 0.005; // Sensitivity of drag
+
+  useEffect(() => {
+    setIsTouch('ontouchstart' in window || navigator.maxTouchPoints > 0);
+  }, []);
+
+  // --- Buffer Generation Helper ---
+  const createNoiseBuffer = (
+    ctx: AudioContext,
+    type: 'brown' | 'white',
+  ): AudioBuffer => {
+    const bufferSize = 2 * ctx.sampleRate;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const output = buffer.getChannelData(0);
+
+    if (type === 'white') {
+      // White Noise: Random values between -1.0 and 1.0
+      for (let i = 0; i < bufferSize; i++) {
+        output[i] = Math.random() * 2 - 1;
+        output[i] *= 0.15; // Lower base volume for white noise as it's perceived louder
+      }
+    } else {
+      // Brown Noise: Leaky integrator
+      let lastOut = 0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        output[i] = (lastOut + 0.02 * white) / 1.02;
+        lastOut = output[i];
+        output[i] *= 3.5; // Gain compensation
+      }
+    }
+    return buffer;
+  };
+
+  // --- Switch Noise Type Live ---
+  useEffect(() => {
+    // Only switch if context exists and we have a gain node to connect to
+    if (!audioCtxRef.current || !gainNodeRef.current) return;
+
+    // Stop existing node
+    if (noiseNodeRef.current) {
+      try {
+        noiseNodeRef.current.stop();
+        noiseNodeRef.current.disconnect();
+      } catch (e) {
+        // Ignore errors if already stopped
+      }
+    }
+
+    const ctx = audioCtxRef.current;
+    const noise = ctx.createBufferSource();
+    noise.buffer = createNoiseBuffer(ctx, noiseType);
+    noise.loop = true;
+    noise.connect(gainNodeRef.current);
+    noise.start(0);
+    noiseNodeRef.current = noise;
+  }, [noiseType]);
+
+  // --- Audio Initialization ---
+  const initAudio = () => {
+    if (audioCtxRef.current) return;
+
+    const AudioContext =
+      window.AudioContext || (window as any).webkitAudioContext;
+    const ctx = new AudioContext();
+    audioCtxRef.current = ctx;
+
+    // Create Gain (Volume)
+    const gainNode = ctx.createGain();
+    gainNode.gain.value = 0;
+    gainNodeRef.current = gainNode;
+    gainNode.connect(ctx.destination);
+
+    // Initial Noise Node
+    const noise = ctx.createBufferSource();
+    noise.buffer = createNoiseBuffer(ctx, noiseType);
+    noise.loop = true;
+    noise.connect(gainNode);
+    noise.start(0);
+    noiseNodeRef.current = noise;
+  };
+
+  const togglePlay = () => {
+    if (!audioCtxRef.current) initAudio();
+    if (audioCtxRef.current?.state === 'suspended')
+      audioCtxRef.current.resume();
+
+    const newIsPlaying = !isPlaying;
+    setIsPlaying(newIsPlaying);
+
+    if (gainNodeRef.current && audioCtxRef.current) {
+      const now = audioCtxRef.current.currentTime;
+      gainNodeRef.current.gain.cancelScheduledValues(now);
+      gainNodeRef.current.gain.setValueAtTime(
+        gainNodeRef.current.gain.value,
+        now,
+      );
+
+      if (newIsPlaying) {
+        gainNodeRef.current.gain.linearRampToValueAtTime(volume, now + 1);
+      } else {
+        gainNodeRef.current.gain.linearRampToValueAtTime(0, now + 0.5);
+      }
+    }
+  };
+
+  const toggleNoiseType = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newType = noiseType === 'brown' ? 'white' : 'brown';
+    setNoiseType(newType);
+    setFeedbackText(newType === 'brown' ? 'Brown Noise' : 'White Noise');
+    setShowFeedback(true);
+    setTimeout(() => setShowFeedback(false), 1500);
+  };
+
+  useEffect(() => {
+    if (isPlaying && gainNodeRef.current && audioCtxRef.current) {
+      const now = audioCtxRef.current.currentTime;
+      gainNodeRef.current.gain.setTargetAtTime(volume, now, 0.1);
+    }
+  }, [volume, isPlaying]);
+
+  // Timer Logic
+  useEffect(() => {
+    if (timerDuration > 0 && isPlaying) {
+      if (timeLeft === 0 || !timerIntervalRef.current)
+        setTimeLeft(timerDuration * 60);
+
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+
+      timerIntervalRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            if (timerIntervalRef.current)
+              clearInterval(timerIntervalRef.current);
+            togglePlay();
+            setTimerDuration(0);
+            return 0;
+          }
+          if (prev <= 5 && gainNodeRef.current && audioCtxRef.current) {
+            const now = audioCtxRef.current.currentTime;
+            const remainingRatio = prev / 5;
+            gainNodeRef.current.gain.setTargetAtTime(
+              volume * remainingRatio,
+              now,
+              0.1,
+            );
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else if (!isPlaying || timerDuration === 0) {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      if (timerDuration === 0) setTimeLeft(0);
+    }
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, [timerDuration, isPlaying]);
+
+  // --- Interaction Logic ---
+  const handleStart = (clientX: number, clientY: number) => {
+    if (showInfo) return;
+
+    setIsDragging(true);
+    setDragStart({ x: clientX, y: clientY });
+    setInitialDragValues({ vol: volume, time: timerDuration });
+    setShowFeedback(true);
+  };
+
+  const handleMove = useCallback(
+    (clientX: number, clientY: number) => {
+      if (!isDragging) return;
+
+      const deltaY = dragStart.y - clientY;
+      const deltaX = clientX - dragStart.x;
+
+      // Volume (Vertical)
+      let newVol = initialDragValues.vol + deltaY * SENSITIVITY;
+      newVol = Math.max(0, Math.min(1, newVol));
+      setVolume(newVol);
+
+      // Timer (Horizontal)
+      const timeDelta = Math.round(deltaX / 10);
+      let newTime = initialDragValues.time + timeDelta;
+      if (Math.abs(newTime % 5) < 2) newTime = Math.round(newTime / 5) * 5;
+      newTime = Math.max(0, Math.min(MAX_TIMER_MINUTES, newTime));
+
+      if (newTime !== timerDuration) {
+        setTimerDuration(newTime);
+        setTimeLeft(newTime * 60);
+      }
+
+      if (Math.abs(deltaY) > Math.abs(deltaX)) {
+        setFeedbackText(`Volume ${Math.round(newVol * 100)}%`);
+      } else {
+        setFeedbackText(newTime === 0 ? 'Timer Off' : `${newTime} min`);
+      }
+    },
+    [isDragging, dragStart, initialDragValues, timerDuration],
+  );
+
+  const handleEnd = () => {
+    setIsDragging(false);
+    setTimeout(() => setShowFeedback(false), 1500);
+  };
+
+  // Event Listeners
+  const onMouseDown = (e: React.MouseEvent) => {
+    if (
+      (e.target as HTMLElement).closest('button') ||
+      (e.target as HTMLElement).closest('.no-drag')
+    )
+      return;
+    handleStart(e.clientX, e.clientY);
+  };
+  const onMouseMove = (e: React.MouseEvent) => handleMove(e.clientX, e.clientY);
+  const onMouseUp = handleEnd;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (
+      (e.target as HTMLElement).closest('button') ||
+      (e.target as HTMLElement).closest('.no-drag')
+    )
+      return;
+    handleStart(e.touches[0].clientX, e.touches[0].clientY);
+  };
+  const onTouchMove = (e: React.TouchEvent) =>
+    handleMove(e.touches[0].clientX, e.touches[0].clientY);
+  const onTouchEnd = handleEnd;
+
+  const formatTime = (seconds: number): string => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  return (
+    <div
+      className="relative w-full h-screen overflow-hidden bg-slate-950 text-slate-100 select-none touch-none font-sans"
+      onMouseDown={onMouseDown}
+      onMouseMove={onMouseMove}
+      onMouseUp={onMouseUp}
+      onMouseLeave={onMouseUp}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
+      {/* Background Effects */}
+      <div className="absolute inset-0 opacity-20 pointer-events-none">
+        <div
+          className={`absolute top-0 left-0 w-full h-full transition-colors duration-1000 ${noiseType === 'brown' ? 'bg-[radial-gradient(circle_at_50%_50%,rgba(76,29,149,0.5),transparent_70%)]' : 'bg-[radial-gradient(circle_at_50%_50%,rgba(94,234,212,0.15),transparent_70%)]'}`}
+        ></div>
+      </div>
+
+      {/* Main Display Container */}
+      <div className="relative w-full h-full flex items-center justify-center">
+        <TimerRing
+          volume={volume}
+          timerDuration={timerDuration}
+          timeLeft={timeLeft}
+          showInfo={showInfo}
+          noiseType={noiseType}
+        />
+
+        <InstructionOverlay
+          isPlaying={isPlaying}
+          isDragging={isDragging}
+          showInfo={showInfo}
+          isTouch={isTouch}
+        />
+
+        <VolumeOrb
+          volume={volume}
+          isPlaying={isPlaying}
+          isDragging={isDragging}
+          showInfo={showInfo}
+          noiseType={noiseType}
+          onTogglePlay={togglePlay}
+        />
+
+        <FeedbackOverlay
+          showFeedback={showFeedback}
+          feedbackText={feedbackText}
+          timerDuration={timerDuration}
+          timeLeft={timeLeft}
+          formatTime={formatTime}
+        />
+
+        <InfoModal showInfo={showInfo} onClose={() => setShowInfo(false)} />
+      </div>
+
+      <BottomControls
+        volume={volume}
+        noiseType={noiseType}
+        timerDuration={timerDuration}
+        timeLeft={timeLeft}
+        showFeedback={showFeedback}
+        onToggleNoiseType={toggleNoiseType}
+        onToggleInfo={() => setShowInfo(!showInfo)}
+        formatTime={formatTime}
+      />
+
+      <style>{`
+        @keyframes pulse-slow {
+          0%, 100% { box-shadow: 0 0 40px rgba(79, 70, 229, 0.4); }
+          50% { box-shadow: 0 0 80px rgba(79, 70, 229, 0.7); }
+        }
+        .animate-pulse-slow {
+          animation: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default WhiteNoiseNowApp;
