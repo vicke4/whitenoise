@@ -23,13 +23,14 @@ const VolumeOrb = ({
             ${isPlaying ? (noiseType === 'brown' ? 'animate-pulse-brown' : 'animate-pulse-white') : ''}
             ${showInfo ? 'blur-md opacity-20' : ''}
             ${noiseType === 'brown' ? 'bg-linear-to-tr from-amber-700 to-orange-600 shadow-[0_0_50px_rgba(217,119,6,0.4)]' : 'bg-linear-to-tr from-slate-400 to-cyan-100 shadow-[0_0_50px_rgba(200,200,255,0.4)]'}
+            w-(--base-dim) h-(--base-dim) sm:w-(--sm-dim) sm:h-(--sm-dim)
           `}
       style={{
-        width: `${120 + volume * 200}px`,
-        height: `${120 + volume * 200}px`,
+        '--base-dim': `${50 + volume * 200}px`,
+        '--sm-dim': `${120 + volume * 200}px`,
         opacity: showInfo ? 0.2 : 0.6 + volume * 0.4,
         transform: isDragging ? 'scale(0.95)' : 'scale(1)',
-      }}
+      } as React.CSSProperties}
     >
       <button
         onClick={(e) => {

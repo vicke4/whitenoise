@@ -15,12 +15,12 @@ const TimerRing = ({
 }: TimerRingProps) => {
   return (
     <div
-      className="absolute pointer-events-none transition-all duration-500 ease-out"
+      className={`absolute pointer-events-none transition-all duration-500 ease-out w-(--base-dim) h-(--base-dim) sm:w-(--sm-dim) sm:h-(--sm-dim)`}
       style={{
-        width: `${300 + volume * 100}px`,
-        height: `${300 + volume * 100}px`,
+        '--base-dim': `${230 + volume * 100}px`,
+        '--sm-dim': `${300 + volume * 100}px`,        
         opacity: timerDuration > 0 && !showInfo ? 1 : 0.1,
-      }}
+      } as React.CSSProperties}
     >
       <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
         <circle

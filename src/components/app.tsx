@@ -462,7 +462,7 @@ const WhiteNoiseNowApp = () => {
       <div className="relative w-full h-full flex flex-col items-center justify-center gap-8">
         {/* Logo and Title */}
         <div
-          className={`absolute top-12 z-10 transition-all duration-300 flex flex-col items-center gap-4 ${
+          className={`absolute top-8 z-10 transition-all duration-300 flex flex-col items-center gap-4 ${
             showInfo ? 'opacity-20 blur-md' : 'opacity-100'
           }`}
         >
