@@ -1,46 +1,48 @@
-# Astro Starter Kit: Basics
+# White Noise Now
 
+A browser-based white noise and brown noise generator with an intuitive gesture-based interface. Perfect for focus, sleep, or relaxation.
+
+## Features
+
+- **White Noise**: High-frequency sound ideal for masking distractions and improving focus
+- **Brown Noise**: Deep, rumbling sound perfect for sleep and relaxation
+- Gesture-based controls
+- Keyboard shortcuts
+- Sleep timer
+- Works offline
+- PWA support built-in
+
+## Quick Start
+
+### Development
+
+Install dependencies:
 ```sh
-pnpm create astro@latest -- --template basics
+pnpm install
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
-
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-│   └── favicon.svg
-├── src
-│   ├── assets
-│   │   └── astro.svg
-│   ├── components
-│   │   └── Welcome.astro
-│   ├── layouts
-│   │   └── Layout.astro
-│   └── pages
-│       └── index.astro
-└── package.json
+Start the development server:
+```sh
+pnpm dev
 ```
 
-To learn more about the folder structure of an Astro project, refer to [our guide on project structure](https://docs.astro.build/en/basics/project-structure/).
+Visit `localhost:4321` in your browser.
 
-## 🧞 Commands
+## Technical Details
 
-All commands are run from the root of the project, from a terminal:
+### Tech Stack
+- **Framework**: Astro 5 with React 19 integration
+- **Styling**: Tailwind CSS 4
+- **Icons**: Lucide React
+- **TypeScript**: Strict mode enabled
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `pnpm install`             | Installs dependencies                            |
-| `pnpm dev`             | Starts local dev server at `localhost:4321`      |
-| `pnpm build`           | Build your production site to `./dist/`          |
-| `pnpm preview`         | Preview your build locally, before deploying     |
-| `pnpm astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `pnpm astro -- --help` | Get help using the Astro CLI                     |
+### Audio System
+The app generates noise programmatically using the Web Audio API rather than playing audio files:
 
-## 👀 Want to learn more?
+- **White Noise**: Random values between -1.0 and 1.0 for full-spectrum sound
+- **Brown Noise**: Leaky integrator algorithm for deep, low-frequency rumble
+- **Buffer Generation**: 2-second audio buffers created on-the-fly
+- **Looping**: Seamless buffer source node looping for continuous playback
+- **Volume Control**: Gain node with smooth ramping to prevent audio clicks
+- **Safety Cap**: Maximum volume limited to 30% of full gain to protect hearing
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
