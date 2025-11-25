@@ -1,5 +1,5 @@
 // @ts-check
-import { defineConfig } from 'astro/config';
+import { envField, defineConfig } from 'astro/config';
 
 import react from '@astrojs/react';
 
@@ -9,6 +9,13 @@ import cloudflare from '@astrojs/cloudflare';
 
 // https://astro.build/config
 export default defineConfig({
+  env: {
+    schema: {
+      ANALYTICS_SCRIPT: envField.string({ context: "client", access: "public", optional: true }),
+      ANALYTICS_SITE_ID: envField.string({ context: "client", access: "public", optional: true }),
+      FEEDBACK_ENDPOINT: envField.string({ context: "client", access: "public", optional: true }),
+    }
+  },
   integrations: [react()],
 
   vite: {

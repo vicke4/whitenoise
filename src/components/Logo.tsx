@@ -76,7 +76,7 @@ const Logo = ({ noiseType }: LogoProps) => {
             : 'text-transparent bg-clip-text bg-linear-to-r from-slate-300 to-cyan-200'
         }`}
       >
-        White Noise Now
+        WhiteNoise.Now
       </h1>
     </div>
   );

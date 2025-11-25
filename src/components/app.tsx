@@ -1,5 +1,7 @@
+
 import { useCallback, useEffect, useRef, useState } from 'react';
 import BottomControls from './BottomControls';
+import FeedbackModal from './FeedbackModal';
 import FeedbackOverlay from './FeedbackOverlay';
 import InfoModal from './InfoModal';
 import InstructionOverlay from './InstructionOverlay';
@@ -11,7 +13,7 @@ const WhiteNoiseNowApp = () => {
   // --- Audio State ---
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.5); // 0.0 to 1.0
-  const [noiseType, setNoiseType] = useState<'brown' | 'white'>('brown');
+  const [noiseType, setNoiseType] = useState<'brown' | 'white'>('white');
   const [timerDuration, setTimerDuration] = useState(0); // in minutes
   const [timeLeft, setTimeLeft] = useState(0); // in seconds
 
@@ -20,9 +22,11 @@ const WhiteNoiseNowApp = () => {
   const gainNodeRef = useRef<GainNode | null>(null);
   const noiseNodeRef = useRef<AudioBufferSourceNode | null>(null);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const dragNotificationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isFirstVolumeRender = useRef(true);
   const isFirstTimerRender = useRef(true);
   const isFirstNoiseRender = useRef(true);
+  const isFirstTimerEffectRender = useRef(true);
 
   // --- Interaction State ---
   const [isDragging, setIsDragging] = useState(false);
@@ -36,11 +40,15 @@ const WhiteNoiseNowApp = () => {
 
   // --- UI State ---
   const [showInfo, setShowInfo] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [isTouch, setIsTouch] = useState(false);
 
   // --- Constants ---
   const MAX_TIMER_MINUTES = 120;
   const SENSITIVITY = 0.005; // Sensitivity of drag
+  const VOLUME_INCREMENT = 0.01; // 1% volume change per arrow key press
+  const TIMER_INCREMENT = 1; // 1 minute change per arrow key press
+  const MAX_GAIN = 0.3; // Cap maximum volume to prevent ear damage (30% of full gain)
 
   // Load saved preferences from localStorage on mount
   useEffect(() => {
@@ -49,7 +57,11 @@ const WhiteNoiseNowApp = () => {
     const savedNoiseType = localStorage.getItem('whiteNoise_noiseType');
 
     if (savedVolume) setVolume(Number.parseFloat(savedVolume));
-    if (savedTimer) setTimerDuration(Number.parseInt(savedTimer, 10));
+    if (savedTimer) {
+      const timerValue = Number.parseInt(savedTimer, 10);
+      setTimerDuration(timerValue);
+      setTimeLeft(timerValue * 60);
+    }
     if (
       savedNoiseType &&
       (savedNoiseType === 'white' || savedNoiseType === 'brown')
@@ -161,7 +173,7 @@ const WhiteNoiseNowApp = () => {
     noiseNodeRef.current = noise;
   };
 
-  const togglePlay = () => {
+  const togglePlay = useCallback(() => {
     if (!audioCtxRef.current) initAudio();
     if (audioCtxRef.current?.state === 'suspended')
       audioCtxRef.current.resume();
@@ -178,12 +190,15 @@ const WhiteNoiseNowApp = () => {
       );
 
       if (newIsPlaying) {
-        gainNodeRef.current.gain.linearRampToValueAtTime(volume, now + 1);
+        gainNodeRef.current.gain.linearRampToValueAtTime(
+          volume * MAX_GAIN,
+          now + 1,
+        );
       } else {
         gainNodeRef.current.gain.linearRampToValueAtTime(0, now + 0.5);
       }
     }
-  };
+  }, [isPlaying, volume]);
 
   const toggleNoiseType = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -197,12 +212,18 @@ const WhiteNoiseNowApp = () => {
   useEffect(() => {
     if (isPlaying && gainNodeRef.current && audioCtxRef.current) {
       const now = audioCtxRef.current.currentTime;
-      gainNodeRef.current.gain.setTargetAtTime(volume, now, 0.1);
+      gainNodeRef.current.gain.setTargetAtTime(volume * MAX_GAIN, now, 0.1);
     }
   }, [volume, isPlaying]);
 
   // Timer Logic
   useEffect(() => {
+    // Skip first render to allow localStorage values to load
+    if (isFirstTimerEffectRender.current) {
+      isFirstTimerEffectRender.current = false;
+      return;
+    }
+
     if (timerDuration > 0 && isPlaying) {
       if (timeLeft === 0 || !timerIntervalRef.current)
         setTimeLeft(timerDuration * 60);
@@ -222,7 +243,7 @@ const WhiteNoiseNowApp = () => {
             const now = audioCtxRef.current.currentTime;
             const remainingRatio = prev / 5;
             gainNodeRef.current.gain.setTargetAtTime(
-              volume * remainingRatio,
+              volume * MAX_GAIN * remainingRatio,
               now,
               0.1,
             );
@@ -239,9 +260,108 @@ const WhiteNoiseNowApp = () => {
     };
   }, [timerDuration, isPlaying]);
 
+  // --- Keyboard Controls ---
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if info modal is open or if user is typing in an input
+      if (
+        showInfo ||
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      )
+        return;
+
+      switch (e.key) {
+        case ' ':
+        case 'Spacebar':
+          e.preventDefault();
+          togglePlay();
+          break;
+
+        case 'ArrowUp':
+          e.preventDefault();
+          setVolume((prev) => {
+            const newVol = Math.min(1, prev + VOLUME_INCREMENT);
+            setFeedbackText(`Volume ${Math.round(newVol * 100)}%`);
+            setShowFeedback(true);
+            if (dragNotificationTimeoutRef.current) {
+              clearTimeout(dragNotificationTimeoutRef.current);
+            }
+            dragNotificationTimeoutRef.current = setTimeout(
+              () => setShowFeedback(false),
+              1000,
+            );
+            return newVol;
+          });
+          break;
+
+        case 'ArrowDown':
+          e.preventDefault();
+          setVolume((prev) => {
+            const newVol = Math.max(0, prev - VOLUME_INCREMENT);
+            setFeedbackText(`Volume ${Math.round(newVol * 100)}%`);
+            setShowFeedback(true);
+            if (dragNotificationTimeoutRef.current) {
+              clearTimeout(dragNotificationTimeoutRef.current);
+            }
+            dragNotificationTimeoutRef.current = setTimeout(
+              () => setShowFeedback(false),
+              1000,
+            );
+            return newVol;
+          });
+          break;
+
+        case 'ArrowRight':
+          e.preventDefault();
+          setTimerDuration((prev) => {
+            const newTime = Math.min(MAX_TIMER_MINUTES, prev + TIMER_INCREMENT);
+            setTimeLeft(newTime * 60);
+            setFeedbackText(newTime === 0 ? 'Timer Off' : `${newTime} min`);
+            setShowFeedback(true);
+            if (dragNotificationTimeoutRef.current) {
+              clearTimeout(dragNotificationTimeoutRef.current);
+            }
+            dragNotificationTimeoutRef.current = setTimeout(
+              () => setShowFeedback(false),
+              1000,
+            );
+            return newTime;
+          });
+          break;
+
+        case 'ArrowLeft':
+          e.preventDefault();
+          setTimerDuration((prev) => {
+            const newTime = Math.max(0, prev - TIMER_INCREMENT);
+            setTimeLeft(newTime * 60);
+            setFeedbackText(newTime === 0 ? 'Timer Off' : `${newTime} min`);
+            setShowFeedback(true);
+            if (dragNotificationTimeoutRef.current) {
+              clearTimeout(dragNotificationTimeoutRef.current);
+            }
+            dragNotificationTimeoutRef.current = setTimeout(
+              () => setShowFeedback(false),
+              1000,
+            );
+            return newTime;
+          });
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showInfo, togglePlay]);
+
   // --- Interaction Logic ---
   const handleStart = (clientX: number, clientY: number) => {
     if (showInfo) return;
+
+    if (dragNotificationTimeoutRef.current) {
+      clearTimeout(dragNotificationTimeoutRef.current);
+      dragNotificationTimeoutRef.current = null;
+    }
 
     setIsDragging(true);
     setDragStart({ x: clientX, y: clientY });
@@ -264,7 +384,7 @@ const WhiteNoiseNowApp = () => {
       // Timer (Horizontal)
       const timeDelta = Math.round(deltaX / 10);
       let newTime = initialDragValues.time + timeDelta;
-      if (Math.abs(newTime % 5) < 2) newTime = Math.round(newTime / 5) * 5;
+      if (Math.abs(newTime % 5) < 1) newTime = Math.round(newTime / 5) * 5;
       newTime = Math.max(0, Math.min(MAX_TIMER_MINUTES, newTime));
 
       if (newTime !== timerDuration) {
@@ -283,7 +403,11 @@ const WhiteNoiseNowApp = () => {
 
   const handleEnd = () => {
     setIsDragging(false);
-    setTimeout(() => setShowFeedback(false), 1500);
+    // setShowFeedback(false)
+    dragNotificationTimeoutRef.current = setTimeout(
+      () => setShowFeedback(false),
+      1500,
+    );
   };
 
   // Event Listeners
@@ -318,7 +442,7 @@ const WhiteNoiseNowApp = () => {
 
   return (
     <div
-      className="relative w-full h-screen overflow-hidden bg-slate-950 text-slate-100 select-none touch-none font-sans"
+      className="relative w-full h-dvh overflow-hidden bg-slate-950 text-slate-100 select-none touch-none font-sans"
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
@@ -338,7 +462,7 @@ const WhiteNoiseNowApp = () => {
       <div className="relative w-full h-full flex flex-col items-center justify-center gap-8">
         {/* Logo and Title */}
         <div
-          className={`absolute top-12 z-10 transition-all duration-300 flex flex-col items-center gap-4 ${
+          className={`absolute top-8 z-10 transition-all duration-300 flex flex-col items-center gap-4 ${
             showInfo ? 'opacity-20 blur-md' : 'opacity-100'
           }`}
         >
@@ -376,7 +500,19 @@ const WhiteNoiseNowApp = () => {
           formatTime={formatTime}
         />
 
-        <InfoModal showInfo={showInfo} onClose={() => setShowInfo(false)} />
+        <InfoModal
+          showInfo={showInfo}
+          onClose={() => setShowInfo(false)}
+          onOpenFeedback={() => {
+            setShowInfo(false);
+            setShowFeedbackModal(true);
+          }}
+        />
+
+        <FeedbackModal
+          showFeedback={showFeedbackModal}
+          onClose={() => setShowFeedbackModal(false)}
+        />
       </div>
 
       <BottomControls
