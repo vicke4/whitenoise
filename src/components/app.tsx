@@ -24,6 +24,7 @@ const WhiteNoiseNowApp = () => {
   const isFirstVolumeRender = useRef(true);
   const isFirstTimerRender = useRef(true);
   const isFirstNoiseRender = useRef(true);
+  const isFirstTimerEffectRender = useRef(true);
 
   // --- Interaction State ---
   const [isDragging, setIsDragging] = useState(false);
@@ -52,7 +53,11 @@ const WhiteNoiseNowApp = () => {
     const savedNoiseType = localStorage.getItem('whiteNoise_noiseType');
 
     if (savedVolume) setVolume(Number.parseFloat(savedVolume));
-    if (savedTimer) setTimerDuration(Number.parseInt(savedTimer, 10));
+    if (savedTimer) {
+      const timerValue = Number.parseInt(savedTimer, 10);
+      setTimerDuration(timerValue);
+      setTimeLeft(timerValue * 60);
+    }
     if (
       savedNoiseType &&
       (savedNoiseType === 'white' || savedNoiseType === 'brown')
@@ -206,6 +211,12 @@ const WhiteNoiseNowApp = () => {
 
   // Timer Logic
   useEffect(() => {
+    // Skip first render to allow localStorage values to load
+    if (isFirstTimerEffectRender.current) {
+      isFirstTimerEffectRender.current = false;
+      return;
+    }
+
     if (timerDuration > 0 && isPlaying) {
       if (timeLeft === 0 || !timerIntervalRef.current)
         setTimeLeft(timerDuration * 60);
@@ -334,10 +345,7 @@ const WhiteNoiseNowApp = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [
-    showInfo,
-    togglePlay,
-  ]);
+  }, [showInfo, togglePlay]);
 
   // --- Interaction Logic ---
   const handleStart = (clientX: number, clientY: number) => {

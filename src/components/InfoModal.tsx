@@ -1,4 +1,4 @@
-import { X } from 'lucide-react';
+import { Download, Monitor, Smartphone, X } from 'lucide-react';
 
 interface InfoModalProps {
   showInfo: boolean;
@@ -107,6 +107,152 @@ const InfoModal = ({ showInfo, onClose }: InfoModalProps) => {
               </li>
             </ul>
           </div>
+
+          <h2 className="text-xl font-semibold text-teal-400 mt-8 mb-4 flex items-center gap-2">
+            <Download size={24} />
+            Install as an App (Recommended)
+          </h2>
+          <p className="mb-4">
+            You can install White Noise Now on your phone or computer just like
+            a regular app—no app store needed! This is called a{' '}
+            <strong>Progressive Web App (PWA)</strong>, which means it works
+            like a native app but runs in your browser.
+          </p>
+
+          <div className="bg-teal-900/20 p-6 rounded-lg border border-teal-800/50 mb-6">
+            <h3 className="font-bold text-teal-300 mb-3">Why Install It?</h3>
+            <ul className="space-y-2 text-sm text-slate-300">
+              <li className="flex items-start gap-2">
+                <span className="text-teal-400 mt-0.5">✓</span>
+                <span>
+                  <strong>Works completely offline</strong> — Use it anywhere,
+                  even without internet (after first load)
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-teal-400 mt-0.5">✓</span>
+                <span>
+                  <strong>Launches like a real app</strong> — Opens in its own
+                  window without browser clutter
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-teal-400 mt-0.5">✓</span>
+                <span>
+                  <strong>Lives on your home screen</strong> — Quick access with
+                  one tap, just like any other app
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-teal-400 mt-0.5">✓</span>
+                <span>
+                  <strong>Saves battery & data</strong> — Runs efficiently
+                  without constant server connections
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-teal-400 mt-0.5">✓</span>
+                <span>
+                  <strong>No app store required</strong> — Install directly, no
+                  account or download needed
+                </span>
+              </li>
+            </ul>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6 mb-6">
+            <div className="bg-slate-900/50 p-6 rounded-lg border border-slate-800">
+              <h3 className="font-bold text-white mb-3 flex items-center gap-2">
+                <Smartphone size={20} className="text-teal-400" />
+                On Mobile (iPhone/Android)
+              </h3>
+              <div className="space-y-4 text-sm text-slate-400">
+                <div>
+                  <p className="font-semibold text-slate-300 mb-1">
+                    iPhone/iPad (Safari):
+                  </p>
+                  <ol className="list-decimal pl-4 space-y-1">
+                    <li>
+                      Tap the <strong>Share</strong> button (square with arrow
+                      pointing up)
+                    </li>
+                    <li>
+                      Scroll down and tap <strong>"Add to Home Screen"</strong>
+                    </li>
+                    <li>
+                      Tap <strong>"Add"</strong> in the top right
+                    </li>
+                    <li>Find the app icon on your home screen!</li>
+                  </ol>
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-300 mb-1">
+                    Android (Chrome):
+                  </p>
+                  <ol className="list-decimal pl-4 space-y-1">
+                    <li>
+                      Tap the <strong>three dots</strong> menu (⋮) in the top
+                      right
+                    </li>
+                    <li>
+                      Tap <strong>"Add to Home screen"</strong> or{' '}
+                      <strong>"Install app"</strong>
+                    </li>
+                    <li>
+                      Confirm by tapping <strong>"Add"</strong> or{' '}
+                      <strong>"Install"</strong>
+                    </li>
+                    <li>The app appears on your home screen!</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-900/50 p-6 rounded-lg border border-slate-800">
+              <h3 className="font-bold text-white mb-3 flex items-center gap-2">
+                <Monitor size={20} className="text-teal-400" />
+                On Desktop/Laptop
+              </h3>
+              <div className="space-y-4 text-sm text-slate-400">
+                <div>
+                  <p className="font-semibold text-slate-300 mb-1">
+                    Chrome/Edge/Brave:
+                  </p>
+                  <ol className="list-decimal pl-4 space-y-1">
+                    <li>
+                      Look for the <strong>install icon</strong> (⊕ or computer
+                      icon) in the address bar
+                    </li>
+                    <li>
+                      Click it and select <strong>"Install"</strong>
+                    </li>
+                    <li>The app opens in its own window!</li>
+                    <li>Access it from your Start Menu or Dock</li>
+                  </ol>
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-300 mb-1">
+                    Safari (Mac):
+                  </p>
+                  <ol className="list-decimal pl-4 space-y-1">
+                    <li>
+                      Click <strong>File</strong> in the menu bar
+                    </li>
+                    <li>
+                      Select <strong>"Add to Dock"</strong>
+                    </li>
+                    <li>The app is now pinned to your Dock!</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-xs text-slate-500 italic mb-6">
+            💡 Tip: Once installed, you can use White Noise Now on flights, in
+            areas with poor internet, or anywhere offline. Your settings
+            (volume, timer, noise type) are automatically saved!
+          </p>
 
           <h2 className="text-xl font-semibold text-teal-400 mt-8 mb-4">
             Why Choose White Noise Now?
