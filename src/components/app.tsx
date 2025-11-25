@@ -47,6 +47,7 @@ const WhiteNoiseNowApp = () => {
   const SENSITIVITY = 0.005; // Sensitivity of drag
   const VOLUME_INCREMENT = 0.01; // 1% volume change per arrow key press
   const TIMER_INCREMENT = 1; // 1 minute change per arrow key press
+  const MAX_GAIN = 0.3; // Cap maximum volume to prevent ear damage (30% of full gain)
 
   // Load saved preferences from localStorage on mount
   useEffect(() => {
@@ -188,7 +189,10 @@ const WhiteNoiseNowApp = () => {
       );
 
       if (newIsPlaying) {
-        gainNodeRef.current.gain.linearRampToValueAtTime(volume, now + 1);
+        gainNodeRef.current.gain.linearRampToValueAtTime(
+          volume * MAX_GAIN,
+          now + 1,
+        );
       } else {
         gainNodeRef.current.gain.linearRampToValueAtTime(0, now + 0.5);
       }
@@ -207,7 +211,7 @@ const WhiteNoiseNowApp = () => {
   useEffect(() => {
     if (isPlaying && gainNodeRef.current && audioCtxRef.current) {
       const now = audioCtxRef.current.currentTime;
-      gainNodeRef.current.gain.setTargetAtTime(volume, now, 0.1);
+      gainNodeRef.current.gain.setTargetAtTime(volume * MAX_GAIN, now, 0.1);
     }
   }, [volume, isPlaying]);
 
@@ -238,7 +242,7 @@ const WhiteNoiseNowApp = () => {
             const now = audioCtxRef.current.currentTime;
             const remainingRatio = prev / 5;
             gainNodeRef.current.gain.setTargetAtTime(
-              volume * remainingRatio,
+              volume * MAX_GAIN * remainingRatio,
               now,
               0.1,
             );
