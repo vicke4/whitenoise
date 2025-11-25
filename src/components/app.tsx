@@ -42,6 +42,8 @@ const WhiteNoiseNowApp = () => {
   // --- Constants ---
   const MAX_TIMER_MINUTES = 120;
   const SENSITIVITY = 0.005; // Sensitivity of drag
+  const VOLUME_INCREMENT = 0.01; // 1% volume change per arrow key press
+  const TIMER_INCREMENT = 1; // 1 minute change per arrow key press
 
   // Load saved preferences from localStorage on mount
   useEffect(() => {
@@ -162,7 +164,7 @@ const WhiteNoiseNowApp = () => {
     noiseNodeRef.current = noise;
   };
 
-  const togglePlay = () => {
+  const togglePlay = useCallback(() => {
     if (!audioCtxRef.current) initAudio();
     if (audioCtxRef.current?.state === 'suspended')
       audioCtxRef.current.resume();
@@ -184,7 +186,7 @@ const WhiteNoiseNowApp = () => {
         gainNodeRef.current.gain.linearRampToValueAtTime(0, now + 0.5);
       }
     }
-  };
+  }, [isPlaying, volume]);
 
   const toggleNoiseType = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -240,6 +242,103 @@ const WhiteNoiseNowApp = () => {
     };
   }, [timerDuration, isPlaying]);
 
+  // --- Keyboard Controls ---
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if info modal is open or if user is typing in an input
+      if (
+        showInfo ||
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      )
+        return;
+
+      switch (e.key) {
+        case ' ':
+        case 'Spacebar':
+          e.preventDefault();
+          togglePlay();
+          break;
+
+        case 'ArrowUp':
+          e.preventDefault();
+          setVolume((prev) => {
+            const newVol = Math.min(1, prev + VOLUME_INCREMENT);
+            setFeedbackText(`Volume ${Math.round(newVol * 100)}%`);
+            setShowFeedback(true);
+            if (dragNotificationTimeoutRef.current) {
+              clearTimeout(dragNotificationTimeoutRef.current);
+            }
+            dragNotificationTimeoutRef.current = setTimeout(
+              () => setShowFeedback(false),
+              1000,
+            );
+            return newVol;
+          });
+          break;
+
+        case 'ArrowDown':
+          e.preventDefault();
+          setVolume((prev) => {
+            const newVol = Math.max(0, prev - VOLUME_INCREMENT);
+            setFeedbackText(`Volume ${Math.round(newVol * 100)}%`);
+            setShowFeedback(true);
+            if (dragNotificationTimeoutRef.current) {
+              clearTimeout(dragNotificationTimeoutRef.current);
+            }
+            dragNotificationTimeoutRef.current = setTimeout(
+              () => setShowFeedback(false),
+              1000,
+            );
+            return newVol;
+          });
+          break;
+
+        case 'ArrowRight':
+          e.preventDefault();
+          setTimerDuration((prev) => {
+            const newTime = Math.min(MAX_TIMER_MINUTES, prev + TIMER_INCREMENT);
+            setTimeLeft(newTime * 60);
+            setFeedbackText(newTime === 0 ? 'Timer Off' : `${newTime} min`);
+            setShowFeedback(true);
+            if (dragNotificationTimeoutRef.current) {
+              clearTimeout(dragNotificationTimeoutRef.current);
+            }
+            dragNotificationTimeoutRef.current = setTimeout(
+              () => setShowFeedback(false),
+              1000,
+            );
+            return newTime;
+          });
+          break;
+
+        case 'ArrowLeft':
+          e.preventDefault();
+          setTimerDuration((prev) => {
+            const newTime = Math.max(0, prev - TIMER_INCREMENT);
+            setTimeLeft(newTime * 60);
+            setFeedbackText(newTime === 0 ? 'Timer Off' : `${newTime} min`);
+            setShowFeedback(true);
+            if (dragNotificationTimeoutRef.current) {
+              clearTimeout(dragNotificationTimeoutRef.current);
+            }
+            dragNotificationTimeoutRef.current = setTimeout(
+              () => setShowFeedback(false),
+              1000,
+            );
+            return newTime;
+          });
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    showInfo,
+    togglePlay,
+  ]);
+
   // --- Interaction Logic ---
   const handleStart = (clientX: number, clientY: number) => {
     if (showInfo) return;
@@ -290,7 +389,10 @@ const WhiteNoiseNowApp = () => {
   const handleEnd = () => {
     setIsDragging(false);
     // setShowFeedback(false)
-    dragNotificationTimeoutRef.current = setTimeout(() => setShowFeedback(false), 1000);
+    dragNotificationTimeoutRef.current = setTimeout(
+      () => setShowFeedback(false),
+      1500,
+    );
   };
 
   // Event Listeners

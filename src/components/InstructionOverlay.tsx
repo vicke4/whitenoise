@@ -20,6 +20,11 @@ const InstructionOverlay = ({
           ? 'Tap & drag vertically for volume, horizontally for timer'
           : 'Click & drag vertically for volume, horizontally for timer'}
       </p>
+      {!isTouch && (
+        <p className="text-slate-500 text-xs md:text-sm tracking-wide text-center max-w-xl px-4 mt-2 leading-relaxed uppercase">
+          Space: Play/Pause • ↑↓: Volume • ←→: Timer
+        </p>
+      )}
     </div>
   );
 };
