@@ -2,6 +2,8 @@
 
 A browser-based white noise and brown noise generator with an intuitive gesture-based interface. Perfect for focus, sleep, or relaxation.
 
+![App Screenshot](./public/app-screenshot.png)
+
 ## Features
 
 - **White Noise**: High-frequency sound ideal for masking distractions and improving focus
