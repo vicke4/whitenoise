@@ -1,11 +1,13 @@
-import { Download, Monitor, Smartphone, X } from 'lucide-react';
+import { FEEDBACK_ENDPOINT } from 'astro:env/client';
+import { Download, MessageSquare, Monitor, Smartphone, X } from 'lucide-react';
 
 interface InfoModalProps {
   showInfo: boolean;
   onClose: () => void;
+  onOpenFeedback: () => void;
 }
 
-const InfoModal = ({ showInfo, onClose }: InfoModalProps) => {
+const InfoModal = ({ showInfo, onClose, onOpenFeedback }: InfoModalProps) => {
   return (
     <div
       className={`absolute inset-0 z-40 bg-slate-950/95 backdrop-blur-lg flex justify-center overflow-y-auto no-drag transition-all duration-300 ${showInfo ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
@@ -333,6 +335,29 @@ const InfoModal = ({ showInfo, onClose }: InfoModalProps) => {
             never repeats. This browser-based noise generator requires no
             downloads or installations—just open the page and start playing.
           </p>
+
+          {FEEDBACK_ENDPOINT && <>
+          <h2 className="text-xl font-semibold text-teal-400 mt-8 mb-4 flex items-center gap-2">
+            <MessageSquare size={24} />
+            We'd Love Your Feedback
+          </h2>
+          <p className="mb-4 text-slate-400">
+            Help us make White Noise Now even better! Whether you've found a
+            bug, have a feature suggestion, or just want to share your
+            experience, we'd love to hear from you.
+          </p>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenFeedback();
+            }}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-teal-600 hover:bg-teal-500 text-white font-medium rounded-lg transition-colors"
+          >
+            <MessageSquare size={18} />
+            Send Feedback
+          </button>
+          </>
+          }
         </article>
 
         <div className="mt-12 pt-8 pb-12 border-t border-slate-800 text-center text-xs text-slate-600">

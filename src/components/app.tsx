@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import BottomControls from './BottomControls';
+import FeedbackModal from './FeedbackModal';
 import FeedbackOverlay from './FeedbackOverlay';
 import InfoModal from './InfoModal';
 import InstructionOverlay from './InstructionOverlay';
@@ -38,6 +39,7 @@ const WhiteNoiseNowApp = () => {
 
   // --- UI State ---
   const [showInfo, setShowInfo] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [isTouch, setIsTouch] = useState(false);
 
   // --- Constants ---
@@ -493,7 +495,19 @@ const WhiteNoiseNowApp = () => {
           formatTime={formatTime}
         />
 
-        <InfoModal showInfo={showInfo} onClose={() => setShowInfo(false)} />
+        <InfoModal
+          showInfo={showInfo}
+          onClose={() => setShowInfo(false)}
+          onOpenFeedback={() => {
+            setShowInfo(false);
+            setShowFeedbackModal(true);
+          }}
+        />
+
+        <FeedbackModal
+          showFeedback={showFeedbackModal}
+          onClose={() => setShowFeedbackModal(false)}
+        />
       </div>
 
       <BottomControls

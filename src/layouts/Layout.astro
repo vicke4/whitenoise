@@ -1,3 +1,6 @@
+---
+import { ANALYTICS_SCRIPT, ANALYTICS_SITE_ID } from "astro:env/client";
+---
 <!doctype html>
 <html lang="en">
 	<head>
@@ -27,9 +30,9 @@
 			}
 		</script>
 
-		{process.env.ANALYTICS_SCRIPT && process.env.ANALYTICS_SITE_ID && <script
-			src={process.env.ANALYTICS_SCRIPT}
-			data-site-id={process.env.ANALYTICS_SITE_ID}
+		{ANALYTICS_SCRIPT && ANALYTICS_SITE_ID && <script
+			src={ANALYTICS_SCRIPT}
+			data-site-id={ANALYTICS_SITE_ID}
 			defer
 		></script>}
 	</head>
