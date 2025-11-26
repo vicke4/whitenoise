@@ -1,4 +1,4 @@
-const CACHE_NAME = 'whitenoise-v1.5';
+const CACHE_NAME = 'whitenoise-v1.6';
 const urlsToCache = ['/', '/manifest.json'];
 
 // Install event - cache essential resources
