@@ -125,6 +125,19 @@ const WhiteNoiseNowApp = () => {
     return buffer;
   };
 
+  // --- Create and Start Noise Source Helper ---
+  const createAndStartNoiseSource = (
+    ctx: AudioContext,
+    gainNode: GainNode,
+  ): AudioBufferSourceNode => {
+    const noise = ctx.createBufferSource();
+    noise.buffer = createNoiseBuffer(ctx, noiseType);
+    noise.loop = true;
+    noise.connect(gainNode);
+    noise.start(0);
+    return noise;
+  };
+
   // --- Recreate Noise Node Helper ---
   const recreateNoiseNode = useCallback(() => {
     if (!audioCtxRef.current || !gainNodeRef.current) return;
@@ -140,13 +153,10 @@ const WhiteNoiseNowApp = () => {
     }
 
     // Create new buffer source
-    const ctx = audioCtxRef.current;
-    const noise = ctx.createBufferSource();
-    noise.buffer = createNoiseBuffer(ctx, noiseType);
-    noise.loop = true;
-    noise.connect(gainNodeRef.current);
-    noise.start(0);
-    noiseNodeRef.current = noise;
+    noiseNodeRef.current = createAndStartNoiseSource(
+      audioCtxRef.current,
+      gainNodeRef.current,
+    );
 
     console.log('[Monitor] Recreated noise node');
   }, [noiseType]);
@@ -166,13 +176,10 @@ const WhiteNoiseNowApp = () => {
       }
     }
 
-    const ctx = audioCtxRef.current;
-    const noise = ctx.createBufferSource();
-    noise.buffer = createNoiseBuffer(ctx, noiseType);
-    noise.loop = true;
-    noise.connect(gainNodeRef.current);
-    noise.start(0);
-    noiseNodeRef.current = noise;
+    noiseNodeRef.current = createAndStartNoiseSource(
+      audioCtxRef.current,
+      gainNodeRef.current,
+    );
   }, [noiseType]);
 
   // --- Audio Initialization ---
@@ -191,12 +198,7 @@ const WhiteNoiseNowApp = () => {
     gainNode.connect(ctx.destination);
 
     // Initial Noise Node
-    const noise = ctx.createBufferSource();
-    noise.buffer = createNoiseBuffer(ctx, noiseType);
-    noise.loop = true;
-    noise.connect(gainNode);
-    noise.start(0);
-    noiseNodeRef.current = noise;
+    noiseNodeRef.current = createAndStartNoiseSource(ctx, gainNode);
   };
 
   const togglePlay = useCallback(() => {
