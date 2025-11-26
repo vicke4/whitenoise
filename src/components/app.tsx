@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useRef, useState } from 'react';
 import BottomControls from './BottomControls';
 import FeedbackModal from './FeedbackModal';
@@ -22,6 +21,7 @@ const WhiteNoiseNowApp = () => {
   const gainNodeRef = useRef<GainNode | null>(null);
   const noiseNodeRef = useRef<AudioBufferSourceNode | null>(null);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const audioMonitorIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const dragNotificationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isFirstVolumeRender = useRef(true);
   const isFirstTimerRender = useRef(true);
@@ -125,6 +125,32 @@ const WhiteNoiseNowApp = () => {
     return buffer;
   };
 
+  // --- Recreate Noise Node Helper ---
+  const recreateNoiseNode = useCallback(() => {
+    if (!audioCtxRef.current || !gainNodeRef.current) return;
+
+    // Stop existing node if any
+    if (noiseNodeRef.current) {
+      try {
+        noiseNodeRef.current.stop();
+        noiseNodeRef.current.disconnect();
+      } catch (e) {
+        // Already stopped/disconnected - ignore
+      }
+    }
+
+    // Create new buffer source
+    const ctx = audioCtxRef.current;
+    const noise = ctx.createBufferSource();
+    noise.buffer = createNoiseBuffer(ctx, noiseType);
+    noise.loop = true;
+    noise.connect(gainNodeRef.current);
+    noise.start(0);
+    noiseNodeRef.current = noise;
+
+    console.log('[Monitor] Recreated noise node');
+  }, [noiseType]);
+
   // --- Switch Noise Type Live ---
   useEffect(() => {
     // Only switch if context exists and we have a gain node to connect to
@@ -174,12 +200,20 @@ const WhiteNoiseNowApp = () => {
   };
 
   const togglePlay = useCallback(() => {
-    if (!audioCtxRef.current) initAudio();
-    if (audioCtxRef.current?.state === 'suspended')
+    if (!audioCtxRef.current) {
+      console.log('[Audio] Initializing audio context');
+      initAudio();
+    }
+
+    if (audioCtxRef.current?.state === 'suspended') {
+      console.log('[Audio] Resuming suspended context');
       audioCtxRef.current.resume();
+    }
 
     const newIsPlaying = !isPlaying;
     setIsPlaying(newIsPlaying);
+
+    console.log(`[Audio] ${newIsPlaying ? 'Starting' : 'Stopping'} playback`);
 
     if (gainNodeRef.current && audioCtxRef.current) {
       const now = audioCtxRef.current.currentTime;
@@ -353,6 +387,175 @@ const WhiteNoiseNowApp = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showInfo, togglePlay]);
+
+  // --- Page Visibility & Lifecycle Handlers ---
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        console.log('[Visibility] Page hidden');
+      } else {
+        console.log('[Visibility] Page visible - restoring audio');
+
+        // Resume AudioContext if suspended and we're supposed to be playing
+        if (isPlaying && audioCtxRef.current) {
+          if (audioCtxRef.current.state === 'suspended') {
+            console.log('[Visibility] Resuming suspended AudioContext');
+            audioCtxRef.current.resume().catch((err) => {
+              console.error('[Visibility] Failed to resume:', err);
+            });
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isPlaying]);
+
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted && isPlaying && audioCtxRef.current) {
+        // Page was restored from bfcache (back/forward cache)
+        console.log('[Lifecycle] Page restored from bfcache');
+        if (audioCtxRef.current.state === 'suspended') {
+          audioCtxRef.current.resume();
+        }
+      }
+    };
+
+    const handleResume = () => {
+      console.log('[Lifecycle] Page resumed from freeze');
+      if (isPlaying && audioCtxRef.current?.state === 'suspended') {
+        audioCtxRef.current.resume();
+      }
+    };
+
+    window.addEventListener('pageshow', handlePageShow);
+    window.addEventListener('resume', handleResume);
+
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener('resume', handleResume);
+    };
+  }, [isPlaying]);
+
+  // --- AudioContext State Monitoring ---
+  useEffect(() => {
+    if (isPlaying) {
+      // Monitor AudioContext state every 3 seconds
+      audioMonitorIntervalRef.current = setInterval(() => {
+        if (!audioCtxRef.current) return;
+
+        const state = audioCtxRef.current.state;
+
+        if (state === 'suspended') {
+          console.log('[Monitor] AudioContext suspended - attempting resume');
+          audioCtxRef.current.resume().catch((err) => {
+            console.error('[Monitor] Failed to resume:', err);
+          });
+        } else if (state === 'closed') {
+          console.error('[Monitor] AudioContext closed unexpectedly');
+          // Audio context is dead - would need full re-initialization
+          // For now just log it
+        }
+
+        // Verify buffer source is still valid by checking if it's connected
+        if (noiseNodeRef.current) {
+          try {
+            // Access a property to verify it's still valid
+            const _ = noiseNodeRef.current.loop;
+          } catch (e) {
+            console.log('[Monitor] Buffer source disconnected - recreating');
+            recreateNoiseNode();
+          }
+        }
+      }, 3000); // Check every 3 seconds
+    } else {
+      // Stop monitoring when not playing
+      if (audioMonitorIntervalRef.current) {
+        clearInterval(audioMonitorIntervalRef.current);
+        audioMonitorIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (audioMonitorIntervalRef.current) {
+        clearInterval(audioMonitorIntervalRef.current);
+      }
+    };
+  }, [isPlaying, recreateNoiseNode]);
+
+  // --- Media Session API Integration ---
+  useEffect(() => {
+    if ('mediaSession' in navigator) {
+      if (isPlaying) {
+        // Set metadata
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: noiseType === 'white' ? 'White Noise' : 'Brown Noise',
+          artist: 'White Noise Now',
+          album: 'Focus & Relaxation',
+          artwork: [
+            { src: '/favicon.svg', sizes: '512x512', type: 'image/svg+xml' },
+          ],
+        });
+
+        // Set action handlers
+        navigator.mediaSession.setActionHandler('play', () => {
+          console.log('[MediaSession] Play action');
+          if (!isPlaying) togglePlay();
+        });
+
+        navigator.mediaSession.setActionHandler('pause', () => {
+          console.log('[MediaSession] Pause action');
+          if (isPlaying) togglePlay();
+        });
+
+        // Set playback state
+        navigator.mediaSession.playbackState = 'playing';
+        console.log('[MediaSession] Set to playing state');
+      } else {
+        // Set playback state to paused
+        navigator.mediaSession.playbackState = 'paused';
+        console.log('[MediaSession] Set to paused state');
+      }
+    }
+  }, [isPlaying, noiseType, togglePlay]);
+
+  // --- Audio Session API (Experimental) ---
+  useEffect(() => {
+    // Type guard for experimental Audio Session API
+    const audioSession = (navigator as any).audioSession;
+
+    if (audioSession && typeof audioSession.type !== 'undefined') {
+      const requestAudioSession = async () => {
+        try {
+          if (isPlaying) {
+            // Request 'playback' session type for continuous audio
+            audioSession.type = 'playback';
+            console.log('[AudioSession] Set session type to playback');
+          } else {
+            // Reset to default when not playing
+            if (audioSession.type === 'playback') {
+              audioSession.type = 'auto';
+              console.log('[AudioSession] Reset session type to auto');
+            }
+          }
+        } catch (err) {
+          console.warn('[AudioSession] Failed to set audio session type:', err);
+        }
+      };
+
+      requestAudioSession();
+    } else {
+      // Only log once on mount if not supported
+      if (isPlaying) {
+        console.log('[AudioSession] API not supported on this device');
+      }
+    }
+  }, [isPlaying]);
 
   // --- Interaction Logic ---
   const handleStart = (clientX: number, clientY: number) => {
